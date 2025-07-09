@@ -1,5 +1,6 @@
 package com.example.layeredarchitecture.dao.impl;
 
+import com.example.layeredarchitecture.dao.ItemDAO;
 import com.example.layeredarchitecture.db.DBConnection;
 import com.example.layeredarchitecture.model.ItemDTO;
 
@@ -7,7 +8,8 @@ import java.math.BigDecimal;
 import java.sql.*;
 import java.util.ArrayList;
 
-public class ItemDAOImpl {
+public class ItemDAOImpl implements ItemDAO {
+    @Override
     public ArrayList<ItemDTO> getAllItems() throws SQLException, ClassNotFoundException {
         Connection connection = DBConnection.getDbConnection().getConnection();
         Statement stm = connection.createStatement();
@@ -23,26 +25,29 @@ public class ItemDAOImpl {
         return items;
     }
 
-    public void saveItem(ItemDTO item) throws SQLException, ClassNotFoundException {
+    @Override
+    public boolean saveItem(ItemDTO item) throws SQLException, ClassNotFoundException {
         Connection connection = DBConnection.getDbConnection().getConnection();
         PreparedStatement pstm = connection.prepareStatement("INSERT INTO Item (code, description, unitPrice, qtyOnHand) VALUES (?,?,?,?)");
         pstm.setString(1, item.getCode());
         pstm.setString(2, item.getDescription());
         pstm.setBigDecimal(3, item.getUnitPrice());
         pstm.setInt(4, item.getQtyOnHand());
-        pstm.executeUpdate();
+        return pstm.executeUpdate()>0;
     }
 
-    public void updateItem(ItemDTO item) throws SQLException, ClassNotFoundException {
+    @Override
+    public boolean updateItem(ItemDTO item) throws SQLException, ClassNotFoundException {
         Connection connection = DBConnection.getDbConnection().getConnection();
         PreparedStatement pstm = connection.prepareStatement("UPDATE Item SET description=?, unitPrice=?, qtyOnHand=? WHERE code=?");
         pstm.setString(1, item.getDescription());
         pstm.setBigDecimal(2, item.getUnitPrice());
         pstm.setInt(3, item.getQtyOnHand());
         pstm.setString(4, item.getCode());
-        pstm.executeUpdate();
+       return pstm.executeUpdate()>0;
     }
 
+    @Override
     public boolean findExistingItem(String code) throws SQLException, ClassNotFoundException {
         Connection connection = DBConnection.getDbConnection().getConnection();
         PreparedStatement pstm = connection.prepareStatement("SELECT code FROM Item WHERE code=?");
@@ -50,6 +55,7 @@ public class ItemDAOImpl {
         return pstm.executeQuery().next();
     }
 
+    @Override
     public void deleteItem(String code) throws SQLException, ClassNotFoundException {
         Connection connection = DBConnection.getDbConnection().getConnection();
         PreparedStatement pstm = connection.prepareStatement("DELETE FROM Item WHERE code=?");
@@ -57,6 +63,7 @@ public class ItemDAOImpl {
         pstm.executeUpdate();
     }
 
+    @Override
     public String generateId() throws SQLException, ClassNotFoundException {
         Connection connection = DBConnection.getDbConnection().getConnection();
         ResultSet rst = connection.createStatement().executeQuery("SELECT code FROM Item ORDER BY code DESC LIMIT 1;");
@@ -69,6 +76,7 @@ public class ItemDAOImpl {
         }
     }
 
+    @Override
     public ItemDTO searchItem(String newItemCode) throws SQLException, ClassNotFoundException {
         Connection connection = DBConnection.getDbConnection().getConnection();
         PreparedStatement pstm = connection.prepareStatement("SELECT * FROM Item WHERE code=?");
@@ -76,5 +84,13 @@ public class ItemDAOImpl {
         ResultSet rst = pstm.executeQuery();
         rst.next();
         return new ItemDTO(newItemCode + "", rst.getString("description"), rst.getBigDecimal("unitPrice"), rst.getInt("qtyOnHand"));
+    }
+
+    @Override
+    public boolean existItem(String code) throws SQLException, ClassNotFoundException {
+        Connection connection = DBConnection.getDbConnection().getConnection();
+        PreparedStatement pstm = connection.prepareStatement("SELECT code FROM Item WHERE code=?");
+        pstm.setString(1, code);
+        return pstm.executeQuery().next();
     }
 }

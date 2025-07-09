@@ -1,11 +1,16 @@
 package com.example.layeredarchitecture.controller;
 
 import com.example.layeredarchitecture.dao.CustomerDAO;
+import com.example.layeredarchitecture.dao.ItemDAO;
+import com.example.layeredarchitecture.dao.OrderDAO;
 import com.example.layeredarchitecture.dao.impl.CustomerDAOImpl;
 import com.example.layeredarchitecture.dao.impl.ItemDAOImpl;
 import com.example.layeredarchitecture.dao.impl.OrderDAOImpl;
+import com.example.layeredarchitecture.dao.impl.OrderDetailDAOImpl;
+import com.example.layeredarchitecture.db.DBConnection;
 import com.example.layeredarchitecture.model.CustomerDTO;
 import com.example.layeredarchitecture.model.ItemDTO;
+import com.example.layeredarchitecture.model.OrderDTO;
 import com.example.layeredarchitecture.model.OrderDetailDTO;
 import com.example.layeredarchitecture.view.tdm.OrderDetailTM;
 import com.jfoenix.controls.JFXButton;
@@ -53,8 +58,9 @@ public class PlaceOrderFormController {
     public Label lblTotal;
     private String orderId;
 
-
+    OrderDAO orderDAO = new OrderDAOImpl();
     CustomerDAO customerDAO = new CustomerDAOImpl();
+    ItemDAO itemDAO = new ItemDAOImpl();
     public void initialize() throws SQLException, ClassNotFoundException {
 
         tblOrderDetails.getColumns().get(0).setCellValueFactory(new PropertyValueFactory<>("code"));
@@ -99,29 +105,21 @@ public class PlaceOrderFormController {
             if (newValue != null) {
                 try {
                     /*Search Customer*/
-//                    Connection connection = DBConnection.getDbConnection().getConnection();
                     try {
                         if (!existCustomer(newValue + "")) {
 //                            "There is no such customer associated with the id " + id
                             new Alert(Alert.AlertType.ERROR, "There is no such customer associated with the id " + newValue + "").show();
                         }
 
-//                        PreparedStatement pstm = connection.prepareStatement("SELECT * FROM Customer WHERE id=?");
-//                        pstm.setString(1, newValue + "");
-//                        ResultSet rst = pstm.executeQuery();
-//                        rst.next();
-//                        CustomerDTO customerDTO = new CustomerDTO(newValue + "", rst.getString("name"), rst.getString("address"));
-
                         CustomerDAOImpl customerDAO = new CustomerDAOImpl();
-                        CustomerDTO customerDTO = customerDAO.searchCustomer(newValue);
+                        CustomerDTO customerDTO=customerDAO.searchCustomer(newValue+"");
 
                         txtCustomerName.setText(customerDTO.getName());
                     } catch (SQLException e) {
                         new Alert(Alert.AlertType.ERROR, "Failed to find the customer " + newValue + "" + e).show();
                     }
-
-                } catch (ClassNotFoundException e) {
-                    e.printStackTrace();
+                } catch (Exception throwables) {
+                    throwables.printStackTrace();
                 }
             } else {
                 txtCustomerName.clear();
@@ -140,21 +138,14 @@ public class PlaceOrderFormController {
                     if (!existItem(newItemCode + "")) {
 //                        throw new NotFoundException("There is no such item associated with the id " + code);
                     }
-//                    Connection connection = DBConnection.getDbConnection().getConnection();
-//                    PreparedStatement pstm = connection.prepareStatement("SELECT * FROM Item WHERE code=?");
-//                    pstm.setString(1, newItemCode + "");
-//                    ResultSet rst = pstm.executeQuery();
-//                    rst.next();
-//                    ItemDTO item = new ItemDTO(newItemCode + "", rst.getString("description"), rst.getBigDecimal("unitPrice"), rst.getInt("qtyOnHand"));
-
-                    ItemDAOImpl itemDAO = new ItemDAOImpl();
-                    ItemDTO item = itemDAO.searchItem(newItemCode);
-                    txtDescription.setText(item.getDescription());
-                    txtUnitPrice.setText(item.getUnitPrice().setScale(2).toString());
+//                    ItemDAOImpl itemDAO = new ItemDAOImpl();
+                    ItemDTO itemDTO=itemDAO.searchItem(newItemCode + "");
+                    txtDescription.setText(itemDTO.getDescription());
+                    txtUnitPrice.setText(itemDTO.getUnitPrice().setScale(2).toString());
 
 //                    txtQtyOnHand.setText(tblOrderDetails.getItems().stream().filter(detail-> detail.getCode().equals(item.getCode())).<Integer>map(detail-> item.getQtyOnHand() - detail.getQty()).findFirst().orElse(item.getQtyOnHand()) + "");
                     Optional<OrderDetailTM> optOrderDetail = tblOrderDetails.getItems().stream().filter(detail -> detail.getCode().equals(newItemCode)).findFirst();
-                    txtQtyOnHand.setText((optOrderDetail.isPresent() ? item.getQtyOnHand() - optOrderDetail.get().getQty() : item.getQtyOnHand()) + "");
+                    txtQtyOnHand.setText((optOrderDetail.isPresent() ? itemDTO.getQtyOnHand() - optOrderDetail.get().getQty() : itemDTO.getQtyOnHand()) + "");
 
                 } catch (SQLException throwables) {
                     throwables.printStackTrace();
@@ -192,81 +183,56 @@ public class PlaceOrderFormController {
     }
 
     private boolean existItem(String code) throws SQLException, ClassNotFoundException {
-//        Connection connection = DBConnection.getDbConnection().getConnection();
-//        PreparedStatement pstm = connection.prepareStatement("SELECT code FROM Item WHERE code=?");
-//        pstm.setString(1, code);
-//        return pstm.executeQuery().next();
-
-        ItemDAOImpl itemDAO = new ItemDAOImpl();
-        return itemDAO.findExistingItem(code);
+//        ItemDAOImpl itemDAO = new ItemDAOImpl();
+        return itemDAO.existItem(code);
     }
 
     boolean existCustomer(String id) throws SQLException, ClassNotFoundException {
-//        Connection connection = DBConnection.getDbConnection().getConnection();
-//        PreparedStatement pstm = connection.prepareStatement("SELECT id FROM Customer WHERE id=?");
-//        pstm.setString(1, id);
-//        return pstm.executeQuery().next();
-
 //        CustomerDAOImpl customerDAO = new CustomerDAOImpl();
-//        return customerDAO.findExistingCustomer(id);
+        return customerDAO.existCustomer(id);
 
-        //call through the interface
-        CustomerDAOImpl customerDAO = new CustomerDAOImpl();
-       return customerDAO.existCustomer(id);
+
     }
 
     public String generateNewOrderId() {
         try {
-//            Connection connection = DBConnection.getDbConnection().getConnection();
-//            Statement stm = connection.createStatement();
-//            ResultSet rst = stm.executeQuery("SELECT oid FROM `Orders` ORDER BY oid DESC LIMIT 1;");
-//
-//            return rst.next() ? String.format("OID-%03d", (Integer.parseInt(rst.getString("oid").replace("OID-", "")) + 1)) : "OID-001";
+//            OrderDAOImpl orderDAO = new OrderDAOImpl();
+            return orderDAO.generateNewOrderId();
 
-            OrderDAOImpl orderDAO = new OrderDAOImpl();
-           return orderDAO.generateNewOrderId();
-        } catch (Exception e) {
+        } catch (SQLException e) {
             new Alert(Alert.AlertType.ERROR, "Failed to generate a new order id").show();
-            }
-        return null;
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+        return "OID-001";
     }
 
     private void loadAllCustomerIds() {
         try {
-//            Connection connection = DBConnection.getDbConnection().getConnection();
-//            Statement stm = connection.createStatement();
-//            ResultSet rst = stm.executeQuery("SELECT * FROM Customer");
-//
-//            while (rst.next()) {
-//                cmbCustomerId.getItems().add(rst.getString("id"));
-
 //            CustomerDAOImpl customerDAO = new CustomerDAOImpl();
             ArrayList<CustomerDTO> customerDTOS = customerDAO.getAllCustomers();
-            for (CustomerDTO customerDTO: customerDTOS){
+            for (CustomerDTO customerDTO : customerDTOS) {
                 cmbCustomerId.getItems().add(customerDTO.getId());
             }
 
+
         } catch (Exception e) {
-            new Alert(Alert.AlertType.ERROR, e.getMessage()).show();
+            new Alert(Alert.AlertType.ERROR, "Failed to load customer ids").show();
         }
     }
 
     private void loadAllItemCodes() {
         try {
             /*Get all items*/
-//            Connection connection = DBConnection.getDbConnection().getConnection();
-//            Statement stm = connection.createStatement();
-//            ResultSet rst = stm.executeQuery("SELECT * FROM Item");
-//            while (rst.next()) {
-//                cmbItemCode.getItems().add(rst.getString("code"));
-//            }
-            ItemDAOImpl itemDAO = new ItemDAOImpl();
-            ArrayList<ItemDTO> allItems = itemDAO.getAllItems();
-            for (ItemDTO itemDTO: allItems){
+//            ItemDAOImpl itemDAO = new ItemDAOImpl();
+            ArrayList<ItemDTO> itemDTOS = itemDAO.getAllItems();
+            for (ItemDTO itemDTO : itemDTOS) {
                 cmbItemCode.getItems().add(itemDTO.getCode());
             }
-        } catch (Exception e) {
+        } catch (SQLException e) {
             new Alert(Alert.AlertType.ERROR, e.getMessage()).show();
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
         }
     }
 
@@ -337,110 +303,108 @@ public class PlaceOrderFormController {
     }
 
     public void btnPlaceOrder_OnAction(ActionEvent actionEvent) {
-        boolean b = saveOrder(orderId, LocalDate.now(), cmbCustomerId.getValue(),
-                tblOrderDetails.getItems().stream().map(tm -> new OrderDetailDTO(tm.getCode(), tm.getQty(), tm.getUnitPrice())).collect(Collectors.toList()));
+        // Ensure orderId is initialized
+        if (orderId == null) {
+            orderId = generateNewOrderId();
+            lblId.setText("Order Id: " + orderId);
+        }
+        
+        // Get customer ID
+        String customerId = cmbCustomerId.getValue();
+        if (customerId == null || customerId.trim().isEmpty()) {
+            new Alert(Alert.AlertType.ERROR, "Please select a customer").show();
+            return;
+        }
+        
+        // Save the order
+        boolean b = saveOrder(orderId, LocalDate.now(), customerId,
+                tblOrderDetails.getItems().stream()
+                        .map(tm -> new OrderDetailDTO(orderId, tm.getCode(), tm.getQty(), tm.getUnitPrice()))
+                        .collect(Collectors.toList()));
 
         if (b) {
             new Alert(Alert.AlertType.INFORMATION, "Order has been placed successfully").show();
+            
+            // Reset form for new order
+            orderId = generateNewOrderId();
+            lblId.setText("Order Id: " + orderId);
+            cmbCustomerId.getSelectionModel().clearSelection();
+            cmbItemCode.getSelectionModel().clearSelection();
+            tblOrderDetails.getItems().clear();
+            txtQty.clear();
+            calculateTotal();
         } else {
             new Alert(Alert.AlertType.ERROR, "Order has not been placed successfully").show();
         }
-
-        orderId = generateNewOrderId();
-        lblId.setText("Order Id: " + orderId);
-        cmbCustomerId.getSelectionModel().clearSelection();
-        cmbItemCode.getSelectionModel().clearSelection();
-        tblOrderDetails.getItems().clear();
-        txtQty.clear();
-        calculateTotal();
     }
 
     public boolean saveOrder(String orderId, LocalDate orderDate, String customerId, List<OrderDetailDTO> orderDetails) {
-//        /*Transaction*/
-//        Connection connection = null;
-//        try {
-//            connection = DBConnection.getDbConnection().getConnection();
-//            PreparedStatement stm = connection.prepareStatement("SELECT oid FROM `Orders` WHERE oid=?");
-//            stm.setString(1, orderId);
-//            /*if order id already exist*/
-//            if (stm.executeQuery().next()) {
-//
-//            }
-//
-//            connection.setAutoCommit(false);
-//            stm = connection.prepareStatement("INSERT INTO `Orders` (oid, date, customerID) VALUES (?,?,?)");
-//            stm.setString(1, orderId);
-//            stm.setDate(2, Date.valueOf(orderDate));
-//            stm.setString(3, customerId);
-//
-//            if (stm.executeUpdate() != 1) {
-//                connection.rollback();
-//                connection.setAutoCommit(true);
-//                return false;
-//            }
-//
-//            stm = connection.prepareStatement("INSERT INTO OrderDetails (oid, itemCode, unitPrice, qty) VALUES (?,?,?,?)");
-//
-//            for (OrderDetailDTO detail : orderDetails) {
-//                stm.setString(1, orderId);
-//                stm.setString(2, detail.getItemCode());
-//                stm.setBigDecimal(3, detail.getUnitPrice());
-//                stm.setInt(4, detail.getQty());
-//
-//                if (stm.executeUpdate() != 1) {
-//                    connection.rollback();
-//                    connection.setAutoCommit(true);
-//                    return false;
-//                }
-//
-////                //Search & Update Item
-//                ItemDTO item = findItem(detail.getItemCode());
-//                item.setQtyOnHand(item.getQtyOnHand() - detail.getQty());
-//
-//                PreparedStatement pstm = connection.prepareStatement("UPDATE Item SET description=?, unitPrice=?, qtyOnHand=? WHERE code=?");
-//                pstm.setString(1, item.getDescription());
-//                pstm.setBigDecimal(2, item.getUnitPrice());
-//                pstm.setInt(3, item.getQtyOnHand());
-//                pstm.setString(4, item.getCode());
-//
-//                if (!(pstm.executeUpdate() > 0)) {
-//                    connection.rollback();
-//                    connection.setAutoCommit(true);
-//                    return false;
-//                }
-//            }
-//
-//            connection.commit();
-//            connection.setAutoCommit(true);
-//            return true;
-//
-//        } catch (SQLException throwables) {
-//            throwables.printStackTrace();
-//        } catch (ClassNotFoundException e) {
-//            e.printStackTrace();
-//        }
-//        return false;
-   OrderDAOImpl orderDAO = new OrderDAOImpl();
-  return orderDAO.saveOrder(orderId, orderDate, customerId, orderDetails);
+        /*Transaction*/
+        Connection connection = null;
+        try {
+            //exits order id?
+            connection = DBConnection.getDbConnection().getConnection();
+            OrderDAOImpl orderDAO = new OrderDAOImpl();
+            boolean b1=orderDAO.existOrder(orderId);
+            /*if order id already exist*/
+            if (b1) {
+                return false;
+            }
+            connection.setAutoCommit(false);
+            boolean b2=orderDAO.saveOrder(new OrderDTO(orderId,orderDate,customerId));
+            //save oder
+            if (!b2) {
+                connection.rollback();
+                connection.setAutoCommit(true);
+                return false;
+            }
+            //save order details
+            for (OrderDetailDTO detail : orderDetails) {
+                OrderDetailDAOImpl orderDetailDAO = new OrderDetailDAOImpl();
+                boolean b3=orderDetailDAO.saveOrderDetail(detail);
 
+                if (!b3) {
+                    connection.rollback();
+                    connection.setAutoCommit(true);
+                    return false;
+                }
+
+                //Search & Update Item
+                ItemDTO item = findItem(detail.getItemCode());
+                item.setQtyOnHand(item.getQtyOnHand() - detail.getQty());
+
+                //update item
+//                ItemDAOImpl itemDAO = new ItemDAOImpl();
+                boolean b4=itemDAO.updateItem(item);
+
+                if (!b4) {
+                    connection.rollback();
+                    connection.setAutoCommit(true);
+                    return false;
+                }
+            }
+
+            connection.commit();
+            connection.setAutoCommit(true);
+            return true;
+
+        } catch (SQLException throwables) {
+            throwables.printStackTrace();
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+        return false;
     }
 
-//remove the findItem method
-//    public ItemDTO findItem(String code) {
-//        try {
-//            Connection connection = DBConnection.getDbConnection().getConnection();
-//            PreparedStatement pstm = connection.prepareStatement("SELECT * FROM Item WHERE code=?");
-//            pstm.setString(1, code);
-//            ResultSet rst = pstm.executeQuery();
-//            rst.next();
-//            return new ItemDTO(code, rst.getString("description"), rst.getBigDecimal("unitPrice"), rst.getInt("qtyOnHand"));
-//        } catch (SQLException e) {
-//            throw new RuntimeException("Failed to find the Item " + code, e);
-//        } catch (ClassNotFoundException e) {
-//            e.printStackTrace();
-//        }
-//        return null;
-//    }
-//
+
+    public ItemDTO findItem(String code) {
+        try {
+//            ItemDAOImpl itemDAO = new ItemDAOImpl();
+            return itemDAO.searchItem(code);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to find the Item " + code, e);
+        }
+    }
+
 
 }
